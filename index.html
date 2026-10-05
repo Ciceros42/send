@@ -185,10 +185,10 @@ nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--gre
    Find them in Supabase > Project Settings > API
    (Project URL, and the publishable key, or the anon key under Legacy API keys).
    ========================================================= */
-const SUPABASE_URL = 'https://mjogiumhumnmgkyblqgc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qb2dpdW1odW1ubWdreWJscWdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MjAzNTEsImV4cCI6MjEwNjE5NjM1MX0.vaBL3SqEK7kcqUcymNHex2DCsp-QFA0yaqdULvHp3m4';
+const SUPABASE_URL = 'PASTE_PROJECT_URL_HERE';
+const SUPABASE_ANON_KEY = 'PASTE_ANON_KEY_HERE';
 // The crew. Edit names here; each person picks theirs when they open the app.
-const CREW = ['Reuben', 'Asher', 'Roan', 'Solomon', 'Cody', 'Isaac', 'Jack', 'Noah', 'Grant', 'Charlie', 'Garret'];
+const CREW = ['Reuben', 'Jared', 'Roan', 'Noah'];
 
 /* ---------- plan ---------- */
 const WARM={id:'warm',name:'Warm-up',type:'check',
@@ -478,6 +478,138 @@ const CRIMP10FC={...CRIMP10_BASE,id:'crimp10fc',onlyIf:'post',name:'10mm edge, f
 SCALE.crimp10={kind:'level',levels:['Feet on ground, light strain','Feet on ground, firm strain','Feet on ground, most weight in fingers']};
 SCALE.crimp10fc={kind:'level',levels:['Feet on ground, light','Feet on ground, firm','One foot on a chair','Full bodyweight','+5 lb','+10 lb']};
 {const f=PLAN[5].items,i=f.findIndex(x=>x.id==='openhang');f.splice(i+1,0,{...CRIMP10FC,onlyIf:null,scale:SCALE.crimp10fc})}
+
+/* ---------- plan v2: review fixes, weekly waves, timers for everything ---------- */
+const R=(n,f)=>[...Array(n)].map((_,i)=>f(i));
+const timed=(n,on,rest,label,cue)=>R(n,i=>({on,rest:i<n-1?rest:0,label,cue:typeof cue==='function'?cue(i):cue||''}));
+const untimed=(n,rest,label,cue)=>R(n,i=>({on:null,rest:i<n-1?rest:0,label,cue:typeof cue==='function'?cue(i):cue||''}));
+const open=(rest,label,cue)=>R(60,i=>({on:null,rest,label,cue:typeof cue==='function'?cue(i):cue}));
+const mins=s=>s>=120&&s%60===0?`${s/60} minutes`:s>=60?`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')} min`:`${s} seconds`;
+const isShort=wk=>wk>=5&&wk<=7;
+function patch(id,o){for(const d in PLAN)PLAN[d].items.forEach(it=>{if(it.id===id)Object.assign(it,typeof o==='function'?o(it):o)})}
+const byId=id=>{for(const d in PLAN){const f=PLAN[d].items.find(x=>x.id===id);if(f)return f}};
+
+/* morning */
+patch('morning',it=>({cfg:(c)=>{const s=R(20,i=>({on:10,rest:i<19?20:0,label:'Hang',cue:MORNING.cue(i+1,c)}));return {steps:s,text:'20 hangs of 10 seconds, 20 seconds rest, feet on the ground'}}}));
+/* warm-up */
+patch('warm',{type:'timer',unit:'stage',
+  cfg:()=>({steps:[{on:180,rest:0,label:'Joint circles',cue:'Arms then legs, 3 slow circles each way'},
+    {on:300,rest:0,label:'Easy movement',cue:'Jog, bike, or climb big jugs'},
+    {on:600,rest:0,label:'Easy problems',cue:'3–4 grades below your hardest'},
+    {on:600,rest:0,label:'Harder problems',cue:'Build to a few moves near your max, 2–3 minutes rest between'}],text:'4 stages, about 28 minutes. Tap Skip to move on early'}),
+  how:['3 minutes of joint circles: with one arm straight, slowly draw the biggest circle you can with your hand without twisting your body, 3 each way per arm. Then do the same with each leg: lift the knee, open it out to the side and back, 3 each way. Slow and controlled.',
+   '5 minutes of easy movement to raise your heart rate: jog, bike, or climb big jugs.',
+   '10 minutes of easy problems, 3–4 grades below your hardest.',
+   '10 minutes of harder problems, working up to a few moves or problems close to your max, with 2–3 minutes rest between.',
+   'On hangboard days, finish with 2–3 hangs of 10 seconds on the edge you are about to use, at about half effort, 1 minute rest between.',
+   'The timer runs each stage. Tap Skip to move to the next stage early.']});
+/* max hangs: wave across the block */
+patch('maxhang',{
+  cfg:(c,d,wk)=>{const sh=isShort(wk);const n=d?3:sh?6:5,on=sh?7:10;return {steps:timed(n,on,180,'Hang',i=>`Hang ${i+1}: half-crimp, 20mm`),text:`${n} hangs of ${on} seconds, 3 minutes rest`}},
+  rx:(c,wk)=>isShort(wk)
+    ?`Weeks 5–7: shorter, heavier hangs. Pick a weight you could hold for about ${c?8:9} seconds, so each 7-second hang leaves about ${c?1:2} second${c?'':'s'} in the tank.`
+    :`Pick a weight you could hold for about ${c?12:13} seconds, so each 10-second hang leaves about ${c?2:3} seconds in the tank.${c?'':' Don\'t go heavier than that until an X-ray clears you.'}`,
+  how:(c,wk)=>['Use the 20mm edge on your hangboard. 20mm is about ¾ of an inch deep; most boards label their edges.',
+   'Grip in half-crimp: your fingers bend at the middle knuckle to about a right angle (90°), and your thumb stays off the edge. Not full crimp, where the middle knuckles tent up high and the thumb wraps over the index finger.',
+   'Hang with straight arms and active shoulders: pull your shoulders slightly down away from your ears, but do not bend your elbows. Feet off the ground, body still, no swinging.',
+   'Add weight with a weight belt or vest. Type the extra weight (on top of your bodyweight) in the Added box so it gets logged.',
+   `Finding your weight: in your first session, after warming up, do ${isShort(wk)?7:10}-second hangs, adding 5 lb each time with 3 minutes rest, until one feels like you had only ${isShort(wk)?(c?1:2):(c?2:3)} seconds left. That is your working weight.`,
+   'The block changes the hangs on purpose. Weeks 1–3: 5 hangs of 10 seconds. Week 4 (deload): 3 hangs. Weeks 5–7: 6 hangs of 7 seconds, about 5 lb heavier. Week 8: test.',
+   'The timer counts down 5 seconds to get on the board, then the hang, then 3 minutes of rest before the next one.',
+   'If your grip opens up, your fingers slide, or you drop early, that hang is over. Take 5 lb off for the rest of the session.',
+   'Progressing: when every hang feels solid with time to spare, add 2.5 lb next session. The app suggests it. Never add weight mid-session.']});
+patch('openhang',{cfg:(c,d)=>{const n=d?2:3;return {steps:timed(n,7,180,'Hang',i=>`Hang ${i+1}: 3-finger drag`),text:`${n} hangs of 7 seconds, 3 minutes rest`}}});
+CRIMP10FC.why='Trains the closed full-crimp position on a tiny edge, which half-crimp hangs don\'t fully cover. The early versions keep your feet on the ground so the load stays small while your fingers adapt.';
+patch('crimp10fc',{why:CRIMP10FC.why,cfg:(c,d)=>{const n=d?2:4;return {steps:timed(n,7,120,'Hang',i=>`Hang ${i+1}: full crimp, 10mm`),text:`${n} hangs of 7 seconds, 2 minutes rest`}}});
+/* board, project, technique: attempt timers */
+const boardHow=['"Limit" means problems at or just below your max, ones you might send in 3–10 tries, not problems you can flash.',
+  'Tap Start, then climb. Tap Done after each attempt and the timer runs a 4-minute rest. Tap Skip if you feel ready sooner, but rest at least 3 minutes. Short rests turn this into an endurance session.',
+  'Use half-crimp on small holds whenever you can instead of full crimp.',
+  'Stop when your movement gets sloppy: falling on moves you did earlier, feet cutting when you didn\'t mean to, or skin tearing. Tap End to finish.'];
+patch('board',{type:'timer',unit:'attempt',openEnded:true,cfg:()=>({steps:open(240,'Climb',i=>`Attempt ${i+1}. Tap Done when you come off`),text:'Attempts with 4-minute rests, for 60–90 minutes'}),
+  how:['"Limit" means problems at or just below your max, ones you might send in 3–10 tries, not problems you can flash.','Pick 4–6 problems. Mix hold types, but include your weaknesses: small crimps, slopers, pinches.',...boardHow.slice(1)]});
+patch('board2',{type:'timer',unit:'attempt',openEnded:true,cfg:()=>({steps:open(240,'Climb',i=>`Attempt ${i+1}. Tap Done when you come off`),text:'Attempts with 4-minute rests, for 60–90 minutes'}),
+  how:['Use the steepest angle you have (for example 40° on the Moon or Tension).','Pick problems that are mostly slopers and pinches, at a level you might send in 3–10 tries.',...boardHow.slice(1)]});
+patch('project',{type:'timer',unit:'attempt',openEnded:true,cfg:()=>({steps:open(240,'Climb',i=>`Attempt ${i+1}. Tap Done when you come off`),text:'Attempts with 4-minute rests'}),
+  how:['Warm up fully on easier boulders first.','Tap Start, then climb. Tap Done after each attempt and the timer runs a 4-minute rest. Brush holds while you rest.','Break the problem into sections and work the hardest move on its own.','Stop when you\'re falling lower than before, or your skin is too thin to pull hard. Tap End to finish.','Afterward, file down any rough skin edges and use a skin balm.']});
+patch('tech',{type:'timer',unit:'problem',openEnded:true,cfg:()=>({steps:open(90,'Climb',i=>`Problem ${i+1}. Tap Done when you finish`),text:'Problems with 90-second rests, for 45–60 minutes'}),
+  rx:'45–60 minutes at moderate grades, 3–5 grades below your max.',
+  how:['Climb each problem once or twice. Tap Done after each one and the timer runs a 90-second rest. This should not feel like a pump session.','Pick one focus per session: silent feet (place each foot without a sound), looking at every foothold before you move, or climbing smoothly without pausing.','Try problems in styles you avoid.','Tap End when you\'re done.']});
+/* pull-ups and other untimed sets with timed rest */
+patch('wpull',{type:'timer',unit:'set',cfg:(c,d)=>{const n=d?3:5;return {steps:untimed(n,180,'Pull-ups',i=>`Set ${i+1}: 3 pull-ups, then tap Done`),text:`${n} sets of 3, 3 minutes rest`}},
+  how:['Use a pull-up bar or big jugs, not small edges. This is about arm and back strength, not fingers.','Start each rep from a dead hang with straight arms. Pull until your chin is over the bar, then lower slowly (about 2 seconds) back to straight arms.','Add weight with a belt or vest and enter the added weight in the box.','Finding your weight: warm up with 1 set of 5 at bodyweight, then add 10 lb per set of 3 until a set feels like you had only 1 rep left.','Tap Done after each set. The timer runs the 3-minute rest.','Progressing: when all 15 reps are clean with full range, add 5 lb next session (2.5 lb if 5 is too big a jump).']});
+const pinchSteps=n=>{const wide=Math.round(n*0.6/2)*2;return R(n,i=>({on:5,rest:i<n-1?60:0,label:'Lift and hold',cue:`${i%2?'Left':'Right'} hand, ${i<wide?'wide':'narrow'} pinch`}))};
+patch('pinch',{cfg:(c,d)=>{const n=d?6:10;return {steps:pinchSteps(n),text:`${n} lifts of 5 seconds (${n/2} per hand), 60 seconds rest`}},
+  rx:'Lift and hold for 5 seconds. Use a weight you can hold for 5 seconds with 1–2 seconds to spare.',
+  how:['A pinch block is a small block you squeeze between your thumb and fingers, with weight hanging from it on a loading pin.','Stand with the block on the floor beside you. Pinch it and stand up tall with your arm straight at your side, then hold. Do not let it swing.','The lifts alternate hands: right, left, right, left. The timer tells you which hand and which pinch width for every lift.','The first 6 lifts are wide pinch (the widest setting or grip on the block), the last 4 are narrow. On deload weeks it\'s 4 wide and 2 narrow.','Enter the weight on the block in the Added box. If wide and narrow need different weights, log the wide one.','Progressing: add 2.5 lb any week every lift felt solid.','No pinch block? Pinch a weight plate by its rim, or two plates smooth side out.']});
+patch('sloper',{cfg:(c,d)=>{const n=d?2:4;return {steps:timed(n,10,120,'Hang',i=>`Hang ${i+1}: open hand on the sloper`),text:`${n} hangs of 10 seconds, 2 minutes rest`}}});
+const lockSteps=n=>{const pairs=n/2,at90=Math.ceil(pairs/2);return R(n,i=>({on:5,rest:i<n-1?45:0,label:'Hold',cue:`${i%2?'Left':'Right'} arm, elbow at ${Math.floor(i/2)<at90?'90°':'120°'}`}))};
+patch('lockoff',{cfg:(c,d)=>{const n=d?6:12;return {steps:lockSteps(n),text:`${n} holds of 5 seconds, alternating arms, 45 seconds rest`}},
+  rx:'Hold for 5 seconds with one arm, 45 seconds rest, alternating arms each hold.',
+  how:['Pull up with both hands on a bar or big jugs to the angle the timer shows, then let go with one hand and hold yourself in place with the other.','90°: elbow bent at a right angle, like the halfway point of a pull-up.','120°: arm straighter, so you are lower. This is harder.','The first half of the holds are at 90° and the second half at 120°, alternating arms every hold. The timer shows the arm and angle each time.','If you can\'t hold 5 seconds, loop a towel or band over the bar and hold it lightly with your free hand for help. Use as little help as you can, and log the version you used.']});
+patch('flever',it=>({cfg:()=>({max:true,target:10,steps:R(3,i=>({on:'max',rest:i<2?120:0,label:'Hold as long as you can',cue:''})),text:'3 max holds, 2 minutes rest'})}));
+patch('lsit',it=>({cfg:()=>({max:true,target:20,steps:R(3,i=>({on:'max',rest:i<2?90:0,label:'Hold as long as you can',cue:''})),text:'3 max holds, 90 seconds rest'})}));
+for(const id of ['legraise','abwheel'])patch(id,{type:'timer',unit:'set',cfg:(c,d)=>{const n=d?2:3;return {steps:untimed(n,75,id==='legraise'?'Leg raises':'Rollouts',i=>`Set ${i+1}: 8 reps, then tap Done`),text:`${n} sets of 8, 75 seconds rest`}},
+  rx:'3 sets of 8 at the version you picked below.'});
+patch('antag',{type:'timer',unit:'set',cfg:(c,d)=>{const n=d?2:3;const st=[...untimed(n,60,'Dips or push-ups',i=>`Set ${i+1}: 8–10 reps, then tap Done`),...untimed(n,60,'External rotations',i=>`Set ${i+1}: 12 per arm, then tap Done`),...untimed(n,60,'Reverse wrist curls',i=>`Set ${i+1}: 15 per arm, then tap Done`)];st.forEach((x,i)=>x.rest=i<st.length-1?60:0);return {steps:st,text:`${n} sets of each exercise, 60 seconds rest`}}});
+patch('cossack',{type:'timer',unit:'set',cfg:(c,d)=>{const n=d?2:3;return {steps:untimed(n,60,'Cossack squats',i=>`Set ${i+1}: 6 per side, then tap Done`),text:`${n} sets of 6 per side, 60 seconds rest`}},
+  rx:'3 sets of 6 per side. Add a dumbbell once you can reach full depth.'});
+patch('passthru',{type:'timer',unit:'set',cfg:()=>({steps:untimed(2,30,'Pass-throughs',i=>`Set ${i+1}: 10 slow reps, then tap Done`),text:'2 sets of 10, 30 seconds rest'}),
+  rx:'Move slowly. Narrow your grip a little each week, and log your grip width below.'});
+/* frog: stretch / press / lift labels */
+patch('frog',it=>{const r=it.timerText&&it.timerText.startsWith('3')?3:2;return {cfg:()=>({steps:R(r,i=>[{on:60,rest:3,label:'Stretch',cue:`Round ${i+1} of ${r}: sink in and breathe`},{on:10,rest:3,label:'Press down',cue:'Push your knees into the floor, hard'},{on:10,rest:i<r-1?60:0,label:'Lift knees',cue:'Try to lift your knees off the floor'}]).flat(),text:`${r} rounds: 60-second stretch, 10-second press down, 10-second knee lift. 1 minute rest between rounds`}),
+  rx:'Builds strength at the bottom of your frog position, for turning your hips into the wall and high steps. Log your hip height below.'}});
+/* 90/90: knee stays down, back foot lifts */
+const ninetyHow=['Sit on the floor in the 90/90 position: front leg bent at 90° with the shin across your body, back leg out to the side with that knee also bent at 90° and the foot behind you.',
+ 'Sit up tall. Put your hands on the floor behind you if your version allows it.',
+ 'Keep the back knee on the floor, right out to the side of your hip. Lift the back foot and ankle off the floor by rotating that thigh, and hold for 5 seconds.',
+ 'Lower the foot, then switch so the other leg is behind. The timer alternates sides and tells you which leg.',
+ 'If you can\'t lift the foot at all, lean your upper body away from the working leg, or sit on a yoga block. Don\'t let your hips tip toward the lifting leg.',
+ 'To progress, sit taller, take your hands away, then add an ankle weight.'];
+patch('ninety',it=>{const n=it.timerText&&it.timerText.startsWith('10')?10:6;return {how:ninetyHow,
+  rx:'Builds internal hip rotation strength for drop knees, heel hooks and staying close to the wall.',
+  cfg:()=>({steps:R(n,i=>({on:5,rest:i<n-1?10:0,label:'Lift the back foot',cue:i%2?'Left leg behind: knee down, lift the foot':'Right leg behind: knee down, lift the foot'})),text:`${n} holds of 5 seconds, alternating sides, 10 seconds rest`})}});
+patch('highstep',{cfg:()=>({steps:R(10,i=>({on:5,rest:i<9?15:0,label:'Hold the knee up',cue:i%2?'Left knee up':'Right knee up'})),text:'10 holds of 5 seconds, alternating legs, 15 seconds rest'})});
+patch('proney',it=>{const n=it.timerText&&it.timerText.startsWith('3')?3:2;return {cfg:()=>({steps:R(n,s=>R(8,r=>({on:5,rest:r<7?3:(s<n-1?60:0),restLabel:'Lower',label:'Lift and hold',cue:`Set ${s+1}, rep ${r+1} of 8`}))).flat(),text:`${n} sets of 8 reps, each a 5-second hold, 60 seconds between sets`})}});
+patch('german',{cfg:()=>({steps:timed(3,15,60,'Hold',i=>`Hold ${i+1}: feet as the version says`),text:'3 holds of 15 seconds, 1 minute rest'}),
+  how:['Use a bar or gymnastic rings at about chest height to start.','Grip the bar, then walk your feet under and through your arms so the bar ends up behind you and your arms point backward.','Keep most of your weight on your feet at first. Let your chest sink forward until you feel a strong stretch across the front of your shoulders.','Hold for 15 seconds, then walk back out.','Progress through the versions over weeks: less weight on your feet, then feet off with knees tucked, then legs straight.','Stop if you feel pinching or sharp pain in the front of the shoulder. A strong stretch is fine; pain is not.']});
+patch('cardio',{type:'timer',unit:'session',cfg:()=>({steps:[{on:1800,rest:0,label:'Easy cardio',cue:'Conversational pace. Keep going to 45 minutes if it feels good'}],text:'30 minutes, up to 45'})});
+for(const id of ['lsit','flever'])patch(id,{});
+
+/* week 8 tests */
+const HANGTEST={id:'hangtest',name:'Max hang test',type:'timer',unit:'attempt',openEnded:true,scale:{kind:'weight',test:true},
+  rx:'Find the heaviest added weight you can hold for 7 seconds, half-crimp on the 20mm edge.',
+  cfg:()=>({steps:R(10,i=>({on:7,rest:180,label:'Hang',cue:i?`Attempt ${i+1}: add 5 lb if the last one was solid`:'Attempt 1: start about 10 lb under last block\'s working weight'})),text:'7-second attempts with 3-minute rests. Tap End once you fail one'}),
+  how:['Do the full warm-up first. Test fresh, never the day after a hard session.','Each attempt is a 7-second hang, half-crimp on the 20mm edge. Add 5 lb after every attempt you hold cleanly.','Once you fail an attempt (drop early, grip opens, or fingers slide), tap End.','Enter the heaviest weight you held for the full 7 seconds in the box. That is your result, and the History tab tracks it.']};
+const PULLTEST={id:'pulltest',name:'Weighted pull-up test',type:'timer',unit:'attempt',openEnded:true,scale:{kind:'weight',test:true},
+  rx:'Find the heaviest added weight you can do one clean pull-up with.',
+  cfg:()=>({steps:open(180,'Single pull-up',i=>`Attempt ${i+1}: add 10 lb, or 5 lb once it gets close. Tap Done after`),text:'Single reps with 3-minute rests. Tap End once you fail one'}),
+  how:['Warm up with a set of 5 at bodyweight, then a few singles with light weight.','Do one pull-up from straight arms to chin over the bar. Add 10 lb after each clean rep, or 5 lb once it gets close.','Tap Done after each attempt for the 3-minute rest. Tap End once you fail one.','Enter the heaviest weight you pulled cleanly in the box.']};
+
+/* new week: max hangs move to Thursday so no two hard finger days stack up before the weekend */
+{const d4=PLAN[4],d5=PLAN[5];const take=id=>d5.items.find(x=>x.id===id);
+ const mh=take('maxhang'),oh=take('openhang'),cr=take('crimp10fc');
+ d4.title='Max hangs and limit board: slopers and pinches';
+ const w=d4.items.find(x=>x.id==='warm'),m=d4.items.find(x=>x.id==='morning'),b=d4.items.find(x=>x.id==='board2'),p=d4.items.find(x=>x.id==='wpull');
+ d4.items=[m,w,mh,oh,cr,b,p];
+ d5.title='Technique and body';
+ d5.items=d5.items.filter(x=>!['maxhang','openhang','crimp10fc'].includes(x.id));}
+patch('crimp10fc',{rx:'Light full-crimp work on a small edge, once a week on Thursday. Build up through the versions slowly, over weeks, not sessions.'});
+
+
+patch('wpull',{rx:'15 pull-ups total. Use a weight you could do about 4 times, so each set leaves 1 rep in the tank.'});
+patch('warm',{rx:'Starts with joint circles, then easy climbing that builds up to moves close to your hardest.'});
+patch('board',{rx:'On the Moon or Tension board, 4–6 problems at your hardest level.'});
+patch('board2',{rx:'At the steepest angle, problems at your hardest level that use slopers and pinches.'});
+patch('sloper',{rx:'Use an added weight you could hold for about 13 seconds.'});
+patch('antag',{rx:'Dips or push-ups 8–10 reps, external rotations 12 per arm, reverse wrist curls 15 per arm. The timer takes you through each exercise in order.'});
+patch('cardio',{rx:'At a pace where you could hold a conversation.'});
+patch('tech',{rx:'Moderate grades, 3–5 below your max.'});
+patch('lockoff',{rx:'Hold still with one arm. The timer shows which arm and which elbow angle for every hold.'});
+patch('pinch',{rx:'Use a weight you can hold for 5 seconds with 1–2 seconds to spare.'});
+patch('legraise',{rx:'At the version you picked below.'});patch('abwheel',{rx:'At the version you picked below.'});
+patch('cossack',{rx:'Add a dumbbell once you can reach full depth.'});
+const HARDFINGER={1:true,2:true,4:true,6:true};
 const GRADES=[...Array(18)].map((_,i)=>'V'+i);
 function lastLog(key){return S.logs.filter(l=>l.uid===S.uid&&l.date<S.date&&l.loads&&l.loads[key]!=null).sort((a,b)=>a.date<b.date?1:-1)[0]}
 function bestVal(key,better){const v=S.logs.filter(l=>l.uid===S.uid&&l.loads&&l.loads[key]!=null).map(l=>Number(l.loads[key]));return v.length?(better==='lower'?Math.min(...v):Math.max(...v)):null}
@@ -486,7 +618,10 @@ function scaleUI(it,s){
   let h='<div class="scale">',hint='';
   if(sc.kind==='weight'){
     const L=lastLog(it.id);let sug=null;
-    if(L){const lw=Number(L.loads[it.id]),full=it.timer?(L.sets&&L.sets[it.id]>=it.timer.sets):null;
+    if(sc.test){const b=bestVal(it.id);hint=b!=null?`Your best so far: +${b} lb.`:'Enter the heaviest weight you held or pulled cleanly.'}
+    else if(it.id==='maxhang'&&L&&isShort(blockWeek(L.date)||1)!==isShort(planFor(S.date).wk||1)){const lw=Number(L.loads[it.id]);
+      hint=isShort(planFor(S.date).wk)?`New phase: 7-second hangs. Start about 5 lb heavier than last time (+${lw+5} lb).`:`New phase: 10-second hangs. Start about 5 lb lighter than last time (+${Math.max(0,lw-5)} lb).`;sug=isShort(planFor(S.date).wk)?lw+5:Math.max(0,lw-5)}
+    else if(L){const lw=Number(L.loads[it.id]),full=it.timer?(L.sets&&L.sets[it.id]>=it.timer.sets):null;
       if(it.timer)sug=full?lw+sc.inc:lw;
       hint=it.timer?(full?`Last time: +${lw} lb, every ${it.unit} done. Try +${lw+sc.inc} lb today.`:`Last time: +${lw} lb, not every ${it.unit} done. Stay at +${lw} lb today.`)
         :`Last time: +${lw} lb. Add ${sc.inc} lb if every rep was clean.`}
@@ -551,10 +686,13 @@ function cleared(){const m=S.members[S.uid];return !!(m&&m.cleared)}
 function planFor(date){
   const dow=pd(date).getDay();const p=PLAN[dow];const wk=blockWeek(date);
   const deload=wk===4;const c=cleared();
-  const items=p.items.filter(it=>!it.onlyIf||(it.onlyIf==='post')===c).map(it=>{
-    const o={...it,rx:typeof it.rx==='function'?it.rx(c):it.rx,how:typeof it.how==='function'?it.how(c):it.how};
-    if(it.cfg){const cf={...it.cfg(c)};if(deload&&!it.noDeload)cf.sets=Math.ceil(cf.sets/2);o.timer=cf;if(it.cue)o.cueFn=n=>it.cue(n,c);else if(cf.seq)o.cueFn=n=>(cf.seq[n-1]||{}).cue||''}
-    if(deload&&it.type==='check'&&['wpull','antag','legraise','abwheel','board','board2','tech'].includes(it.id))o.rx+=' Deload week: do half the sets, or half the time.';
+  let src=p.items.filter(it=>!it.onlyIf||(it.onlyIf==='post')===c);
+  if(wk===8&&dow===1)src=src.flatMap(it=>it.id==='maxhang'?[HANGTEST]:it.id==='wpull'?[PULLTEST]:it.id==='openhang'?[]:[it]);
+  const items=src.map(it=>{
+    const o={...it,rx:typeof it.rx==='function'?it.rx(c,wk):it.rx,how:typeof it.how==='function'?it.how(c,wk):it.how};
+    if(it.cfg){const cf=it.cfg(c,deload&&!it.noDeload,wk);cf.sets=cf.steps.length;o.timer=cf;o.type='timer'}
+    if(deload&&!it.noDeload&&it.openEnded)o.rx+=' Deload week: about half the usual time.';
+    if(wk===8&&dow===1&&it.id==='board')o.rx='After testing, keep this short and fun: 30–45 minutes.';
     return o});
   return {...p,dow,items,wk,deload};
 }
@@ -632,12 +770,12 @@ function renderToday(){
     const d=!!s.done[it.id];
     if(it.morning&&pain.knuckle){h+=`<div class="item"><div class="body"><h3>${esc(it.name)}</h3><p class="rx">Skip today. You flagged knuckle pain.</p></div></div>`;continue}
     h+=`<div class="item ${d?'done':''}"><button class="tick" data-tick="${it.id}" aria-pressed="${d}" aria-label="Mark ${esc(it.name)} ${d?'not done':'done'}">${CHECK}</button><div class="body">
-      <h3>${esc(it.name)}</h3><p class="rx">${it.timer?(it.timerText?esc(it.timerText)+'. ':`${it.timer.sets} ${it.unit}s total, ${it.timer.on} seconds each, one at a time with rest between. `):''}${esc(it.rx)}</p>`;
+      <h3>${esc(it.name)}</h3><p class="rx">${it.timer?`<b>${esc(it.timer.text)}.</b> `:''}${esc(it.rx||'')}</p>`;
     if(it.how||it.why)h+=`<details class="how"><summary>How to do it</summary>${it.why?`<p class="why">${esc(it.why)}</p>`:''}${it.how?'<ol>'+it.how.map(x=>`<li>${esc(x)}</li>`).join('')+'</ol>':''}</details>`;
     h+=scaleUI(it,s);
     if(it.timer){h+='<div class="row">';
       h+=`<button class="go" data-timer="${it.id}">Start timer</button>`;
-      if(s.sets[it.id])h+=`<span class="sets">${s.sets[it.id]} of ${it.timer.sets} ${it.unit}s done</span>`;
+      if(s.sets[it.id])h+=`<span class="sets">${it.openEnded?`${s.sets[it.id]} ${it.unit}${s.sets[it.id]>1?'s':''} logged`:`${s.sets[it.id]} of ${it.timer.sets} ${it.unit}s done`}</span>`;
       h+='</div>'}
     h+='</div></div>';
   }
@@ -748,25 +886,27 @@ const GLOSS=[
 function renderGuide(){
   let h=header()+`<section class="hero"><div class="day">Guide</div><p class="focus">What every term and number in the plan means</p></section>`;
   h+=`<h2>The week</h2><div class="card guide"><table class="week"><tbody>${[1,2,3,4,5,6,0].map(d=>`<tr><td>${DAYNAMES[d]}</td><td>${esc(PLAN[d].title)}</td></tr>`).join('')}</tbody></table>
-   <p style="margin-top:12px">Five hard days, one recovery day, one full rest. Monday through Saturday also start with 10 minutes of morning hangs, at least 6 hours before training. End-range hip and shoulder work comes on Tuesday (full session), Wednesday (lighter) and Friday (hips only), always after finger work, never before. Don\'t move two hard finger days (Monday and Friday) next to each other, and don\'t skip Sunday.</p></div>`;
+   <p style="margin-top:12px">Max hangs are on Monday and Thursday, each after a lighter day, and Friday is kept light so your fingers and skin are fresh for Saturday outside. Monday through Saturday also start with 10 minutes of morning hangs, at least 6 hours before training. End-range hip and shoulder work comes on Tuesday (full session), Wednesday (lighter) and Friday (hips only), always after finger work, never before. Don\'t skip Sunday.</p></div>`;
   h+=`<h2>How a session works</h2><div class="card guide"><ol>
    <li>Open Today. It shows the right workout for the day.</li>
    <li>Tap "How to do it" on anything you're unsure about.</li>
    <li>Do the exercises in order, top to bottom. Finger work comes right after the warm-up while you're fresh.</li>
-   <li>For timed exercises, type your added weight first, then tap Start timer. Tap Start on the timer screen, get on the board during the 5-second countdown, and follow the beeps: a high beep means hang, a lower beep means rest. The exercise ticks itself off when you finish every set.</li>
-   <li>For other exercises, tap the circle when you're done, and log weight where there's a box.</li>
+   <li>Every exercise has a timer. Set your weight or version first, then tap Start timer. You get a 5-second countdown, then follow the beeps: a high beep means go, a lower beep means rest.</li>
+   <li>Timed holds and hangs count down by themselves. For sets of reps, climbing attempts and anything else you do at your own pace, tap Done when you finish and the timer runs your rest. Tap Skip to cut a rest short and End to finish early.</li>
+   <li>An exercise ticks itself off when you finish every set. For climbing sessions, it ticks off when you tap End. You can always tap the circle yourself.</li>
    <li>Fill in the finger check at the bottom before you leave.</li></ol></div>`;
   h+=`<h2>Everything scales to you</h2><div class="card guide"><p>No exercise has a fixed difficulty. Each one has a setting that's yours: added weight on hangs, pinches and pull-ups; a version on front levers, L-sits, lock-offs, core and mobility drills; a measurement on frog and pass-throughs; and your hardest grade on board and outdoor sessions.</p><p>The app remembers what you did last time and tells you what to do today. Hit every set and it tells you to add weight or move up a version. Miss sets and it tells you to stay put. Max-hold timers count up, so the target is always your own best.</p></div>`;
-  h+=`<h2>Testing every 4 weeks</h2><div class="card guide">
+  h+=`<h2>How the 8 weeks change</h2><div class="card guide"><p><b>Weeks 1–3:</b> max hangs are 5 hangs of 10 seconds. Add 2.5 lb whenever every hang was solid.</p><p><b>Week 4, deload:</b> about half the sets at the same weight. Your fingers catch up and the strength shows up after this week.</p><p><b>Weeks 5–7:</b> max hangs become 6 hangs of 7 seconds, about 5 lb heavier. Shorter and heavier pushes maximum strength further. The app tells you the new starting weight.</p><p><b>Week 8:</b> Monday is test day: max hang test and pull-up test replace the usual hangs and pull-ups. Then start the next block.</p></div>`;
+  h+=`<h2>Testing in week 8</h2><div class="card guide">
    <p><b>Max hang test.</b> After a full warm-up, hang on the 20mm edge in half-crimp for 7 seconds. Add 5 lb each attempt with 3 minutes rest. Your result is the heaviest added weight you held for the full 7 seconds with good form.</p>
    <p><b>Weighted pull-up max.</b> After warming up, do single pull-ups, adding 10 lb each attempt (5 lb once it gets close), with 3–5 minutes rest. Your result is the heaviest added weight you pulled with chin over the bar from straight arms.</p>
-   <p>Test when you're fresh, never the day after a hard session. Enter your result as the added weight on that day's max hangs or pull-ups so it shows in the ranking.</p></div>`;
+   <p>Both tests appear on Today on Monday of week 8, with timers. Test when you're fresh, never the day after a hard session. History tracks your results.</p></div>`;
   h+=`<h2>X-ray clearance</h2><div class="card"><label class="check" style="margin:0"><input type="checkbox" id="xray" ${cleared()?'checked':''}><span>A doctor confirmed my finger growth plates are closed. This switches ${esc(S.uid||'your')}${S.uid?'\'s':''} max hangs and morning hangs to the heavier versions.</span></label></div>`;
   h+=`<h2>Safety rules</h2><div class="card guide"><ol>
    <li>Pain or swelling in a middle knuckle: stop all crimping for 2 weeks. If it lasts longer, see a doctor and get an X-ray.</li>
    <li>A pop, or sharp pain at the base of a finger: stop the session immediately and don't climb on it until it's checked.</li>
    <li>Never add weight in the middle of a session. Only between sessions, and only when every set felt solid.</li>
-   <li>No double-dyno campusing until you're cleared by an X-ray. Friday's 10mm full crimp is the only full crimp hangboarding in the plan: keep it light, and progress it slowly.</li>
+   <li>No double-dyno campusing until you're cleared by an X-ray. Thursday's 10mm full crimp is the only full crimp hangboarding in the plan: keep it light, and progress it slowly.</li>
    <li>Sleep 8–10 hours. Eat full meals with protein. Don't cut weight.</li></ol></div>`;
   h+=`<h2>Terms</h2><div class="card guide"><dl>${GLOSS.map(([t,d])=>`<dt>${esc(t)}</dt><dd>${esc(d)}</dd>`).join('')}</dl></div>`;
   return h;
@@ -795,7 +935,8 @@ function renderHistory(){
   h+=`<div class="card" style="margin-bottom:6px"><label class="load" style="justify-content:space-between">Showing <select id="histWho">${CREW.map(n=>`<option ${n===who?'selected':''}>${esc(n)}</option>`).join('')}</select></label></div>`;
   h+=`<h2>Hang weights</h2><div class="card">${chart(hangs,{unit:' lb',label:'Hang weights over time',empty:`No hang weights logged${mine?'':' by '+who} yet.`})}
    <table style="margin-top:12px"><thead><tr><th>Exercise</th><th class="num">Latest</th><th class="num">Best</th></tr></thead><tbody>${hangs.map(se=>`<tr><td>${esc(se.label)}</td><td class="num">${last(se)==null?'–':'+'+last(se)+' lb'}</td><td class="num">${best(se)==null?'–':'+'+best(se)+' lb'}</td></tr>`).join('')}</tbody></table></div>`;
-  const pull=[ser('wpull','Weighted pull-up','var(--ink)')];
+  const pull=[ser('wpull','Weighted pull-up','var(--ink)'),ser('pulltest','Pull-up test (1 rep)','var(--pink)')];
+  hangs.push(ser('hangtest','Max hang test (7s)','var(--ink)'));
   h+=`<h2>Pull-up weight</h2><div class="card">${chart(pull,{unit:' lb',label:'Pull-up weight over time'})}</div>`;
   if(mine){
     const pts=Object.entries(S.pain).filter(([d,v])=>v&&(v.level>0||v.knuckle)).map(([d,v])=>({d,v:v.level||0,flag:!!v.knuckle}));
@@ -853,35 +994,47 @@ let T=null,raf=0,actx=null,wake=null;
 const CIRC=565.5;
 function beep(f=880,dur=.12){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.connect(g);g.connect(actx.destination);g.gain.setValueAtTime(.25,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+dur);o.start();o.stop(actx.currentTime+dur)}catch(e){}}
 function buzz(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+const fmtT=s=>{s=Math.max(0,Math.floor(s));return s>=60?`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`:String(s)};
+const cap=u=>u[0].toUpperCase()+u.slice(1);
 function openTimer(it){
   const load=S.session.loads[it.id];
-  T={it,cfg:it.timer,set:1,phase:'idle',dur:5,end:0,left:5,paused:false,lastSec:null};
+  T={it,cfg:it.timer,steps:it.timer.steps,set:1,phase:'idle',dur:5,end:0,left:5,paused:false,lastSec:null,completed:0,results:[]};
   $('#tName').textContent=it.name;
-  $('#tRx').textContent=it.timerText?it.timerText+(load?`, +${load} lb`:''):`${it.timer.sets} ${it.unit}s of ${it.timer.on} seconds, ${it.timer.rest>=120?(it.timer.rest/60)+' minutes':it.timer.rest+' seconds'} rest`+(load?`, +${load} lb`:'');
-  const sc=it.scale;if(sc&&sc.kind==='level'&&S.session.loads['lvl:'+it.id]!=null)$('#tRx').textContent+=`. ${sc.levels[S.session.loads['lvl:'+it.id]]}`;
-  T.results=[];
-  $('#timer').classList.add('open');$('#tMain').textContent='Start';$('#tSkip').style.visibility='';paint();
+  let rx=it.timer.text+(load?`, +${load} lb`:'');
+  const sc=it.scale;if(sc&&sc.kind==='level'&&S.session.loads['lvl:'+it.id]!=null)rx+=`. ${sc.levels[S.session.loads['lvl:'+it.id]]}`;
+  $('#tRx').textContent=rx;
+  $('#timer').classList.add('open');$('#tMain').textContent='Start';$('#tSkip').style.visibility='';$('#tSkip').textContent='Skip';paint();
 }
+const step=()=>T.steps[T.set-1]||{};
 function setPhase(ph){
-  T.phase=ph;const st=T.cfg.seq?T.cfg.seq[T.set-1]:T.cfg;T.dur=ph==='ready'?5:ph==='hang'?st.on:ph==='rest'?st.rest:0;
-  T.end=performance.now()+T.dur*1000;T.lastSec=null;
-  if(ph==='hang'){beep(1320,.35);buzz(200);if(T.cfg.max){T.start=performance.now();T.hit=false;$('#tMain').textContent='Stop';$('#tSkip').style.visibility='hidden'}}
-  if(ph==='rest'&&T.cfg.max){$('#tMain').textContent='Pause';$('#tSkip').style.visibility=''}
-  if(ph==='rest'){beep(660,.3);buzz([80,60,80])}
+  T.phase=ph;T.lastSec=null;const st=step();
+  if(ph==='ready'){T.dur=5;T.mode='count'}
+  if(ph==='work'){
+    if(st.on==='max'){T.mode='max';T.start=performance.now();T.hit=false;T.dur=0;$('#tMain').textContent='Stop';$('#tSkip').style.visibility='hidden'}
+    else if(st.on==null){T.mode='self';T.start=performance.now();T.dur=0;$('#tMain').textContent='Done';$('#tSkip').style.visibility='hidden'}
+    else{T.mode='count';T.dur=st.on;$('#tMain').textContent='Pause';$('#tSkip').style.visibility=''}
+    beep(1320,.35);buzz(200);
+  }
+  if(ph==='rest'){T.mode='count';T.dur=st.rest;$('#tMain').textContent='Pause';$('#tSkip').style.visibility='';if(T.dur>5){beep(660,.3);buzz([80,60,80])}}
+  T.end=performance.now()+T.dur*1000;T.left=T.dur;
+  if((ph==='rest'||ph==='work')&&T.mode==='count'&&T.dur<=0)advance();
 }
-function stopHold(){const secs=Math.round((performance.now()-T.start)/100)/10;T.results.push(Math.floor(secs));const k='max:'+T.it.id;const best=Math.max(...T.results);
-  if(S.session.loads[k]==null||best>S.session.loads[k])S.session.loads[k]=best;queueSave();
-  if(T.set>=T.cfg.sets)finish(true);else setPhase('rest')}
+function workDone(){
+  T.completed=T.set;
+  if(T.set>=T.steps.length)finish(true);else setPhase('rest');
+}
+function stopHold(){const secs=Math.floor((performance.now()-T.start)/1000);T.results.push(secs);const k='max:'+T.it.id;const best=Math.max(...T.results);
+  if(S.session.loads[k]==null||best>S.session.loads[k])S.session.loads[k]=best;queueSave();workDone()}
 function advance(){
-  if(T.phase==='ready')setPhase('hang');
-  else if(T.phase==='hang'){if(T.set>=T.cfg.sets)finish(true);else{setPhase('rest');if(T.dur<=0)advance()}}
-  else if(T.phase==='rest'){T.set++;setPhase('hang')}
+  if(T.phase==='ready')setPhase('work');
+  else if(T.phase==='work'){if(T.mode==='max')stopHold();else workDone()}
+  else if(T.phase==='rest'){T.set++;setPhase('work')}
 }
 function finish(full){
-  const done=T.cfg.max?T.results.length:full?T.cfg.sets:(T.phase==='rest'?T.set:T.set-1);
   cancelAnimationFrame(raf);
-  if(done>0){S.session.sets[T.it.id]=Math.max(done,S.session.sets[T.it.id]||0);if(done>=T.cfg.sets)S.session.done[T.it.id]=true;queueSave()}
-  if(full){T.phase='done';beep(1560,.18);setTimeout(()=>beep(1760,.3),220);buzz([150,80,150]);paint();$('#tMain').textContent='Close';$('#tSkip').style.visibility='hidden'}
+  const n=T.steps.length,done=T.completed;
+  if(done>0){S.session.sets[T.it.id]=Math.max(done,S.session.sets[T.it.id]||0);if(done>=n||T.it.openEnded)S.session.done[T.it.id]=true;queueSave()}
+  if(full||(T.it.openEnded&&done>0)){T.phase='done';beep(1560,.18);setTimeout(()=>beep(1760,.3),220);buzz([150,80,150]);paint();$('#tMain').textContent='Close';$('#tSkip').style.visibility='hidden'}
   else closeTimer();
   releaseWake();
 }
@@ -890,37 +1043,46 @@ async function holdWake(){try{wake=await navigator.wakeLock.request('screen')}ca
 function releaseWake(){try{wake&&wake.release()}catch(e){}wake=null}
 function loop(){
   if(!T)return;
-  if(T.cfg.max&&T.phase==='hang'){const el=(performance.now()-T.start)/1000;if(!T.hit&&el>=T.cfg.target){T.hit=true;beep(1560,.2);buzz(120)}if(el>=T.cfg.on)stopHold();paint();if(T)raf=requestAnimationFrame(loop);return}
-  if(!T.paused&&T.phase!=='done'&&T.phase!=='idle'){
+  if(T.phase==='work'&&T.mode==='max'){const el=(performance.now()-T.start)/1000;if(!T.hit&&el>=T.cfg.target){T.hit=true;beep(1560,.2);buzz(120)}if(el>=300)stopHold()}
+  else if(!T.paused&&T.mode==='count'&&(T.phase==='ready'||T.phase==='work'||T.phase==='rest')){
     T.left=Math.max(0,(T.end-performance.now())/1000);
     const sec=Math.ceil(T.left);
-    if(sec!==T.lastSec){if(sec<=3&&sec>0&&(T.phase==='ready'||T.phase==='rest'||T.phase==='hang'))beep(T.phase==='hang'?740:990,.08);T.lastSec=sec}
+    if(sec!==T.lastSec){if(sec<=3&&sec>0&&T.dur>3)beep(T.phase==='work'?740:990,.08);T.lastSec=sec}
     if(T.left<=0)advance();
   }
   paint();if(T&&T.phase!=='done')raf=requestAnimationFrame(loop);
 }
 function paint(){
   if(!T)return;
-  const c=T.phase==='hang'?'var(--green)':T.phase==='rest'?'var(--blue)':T.phase==='done'?'var(--pink)':'var(--orange)';
+  const st=step(),n=T.steps.length,U=T.it.unit||'set',oe=T.it.openEnded;
+  const c=T.phase==='work'?'var(--green)':T.phase==='rest'?'var(--blue)':T.phase==='done'?'var(--pink)':'var(--orange)';
   $('#timer').style.setProperty('--c',c);
-  const mx=T.cfg.max&&T.phase==='hang',el=mx?(performance.now()-T.start)/1000:0;
-  $('#tPhase').textContent=T.paused?'Paused':mx?'Hold as long as you can':{idle:'Ready',ready:'Get ready',hang:'Hang',rest:'Rest',done:'Done'}[T.phase];
-  $('#tSecs').textContent=mx?Math.floor(el):T.phase==='done'?(T.cfg.max?Math.max(...T.results)+'s':T.cfg.sets):Math.ceil(T.phase==='idle'?5:T.left);
-  const U=T.it.unit||'set';$('#tSet').textContent=T.phase==='done'?(T.cfg.max?`best of ${T.cfg.sets} ${U}s`:`${U}s complete`):mx?`${U[0].toUpperCase()+U.slice(1)} ${T.set} of ${T.cfg.sets}. Target ${T.cfg.target}s`:`${U[0].toUpperCase()+U.slice(1)} ${T.set} of ${T.cfg.sets}`;
-  const cf=T.it.cueFn;$('#tCue').textContent=T.cfg.max?(T.results.length?'Holds so far: '+T.results.map(x=>x+'s').join(', '):''):!cf||T.phase==='done'?'':T.phase==='rest'?'Next: '+cf(T.set+1):cf(T.set);
-  const frac=mx?Math.min(1,el/T.cfg.target):T.phase==='done'?1:T.phase==='idle'?0:1-(T.left/T.dur);
+  const up=T.phase==='work'&&(T.mode==='max'||T.mode==='self'),el=up?(performance.now()-T.start)/1000:0;
+  const restLbl=st.rest<=5?(st.restLabel||'Switch'):'Rest';
+  $('#tPhase').textContent=T.paused?'Paused':T.phase==='idle'?'Ready':T.phase==='ready'?'Get ready':T.phase==='work'?(st.label||'Go'):T.phase==='rest'?restLbl:'Done';
+  $('#tSecs').textContent=up?fmtT(el):T.phase==='done'?(T.cfg.max?Math.max(...T.results)+'s':oe?T.completed:n):fmtT(Math.ceil(T.phase==='idle'?5:T.left));
+  $('#tSet').textContent=T.phase==='done'?(T.cfg.max?`best of ${n} holds`:oe?`${U}${T.completed===1?'':'s'} logged`:`${U}s complete`)
+    :T.mode==='max'&&T.phase==='work'?`Hold ${T.set} of ${n}. Target ${T.cfg.target}s`
+    :oe?`${cap(U)} ${T.set}`:`${cap(U)} ${T.set} of ${n}`;
+  let cue='';
+  if(T.cfg.max)cue=T.results.length?'Holds so far: '+T.results.map(x=>x+'s').join(', '):'';
+  else if(T.phase==='work'||T.phase==='ready'||T.phase==='idle')cue=st.cue||'';
+  else if(T.phase==='rest'&&T.steps[T.set])cue='Next: '+T.steps[T.set].cue;
+  $('#tCue').textContent=cue;
+  const frac=T.mode==='max'&&T.phase==='work'?Math.min(1,el/T.cfg.target):T.mode==='self'&&T.phase==='work'?0:T.phase==='done'?1:T.phase==='idle'?0:(T.dur?1-(T.left/T.dur):1);
   $('#tProg').setAttribute('stroke-dashoffset',String(CIRC*(1-frac)));
 }
 $('#tMain').addEventListener('click',()=>{
   if(!T)return;
   if(T.phase==='done'){closeTimer();return}
-  if(T.cfg.max&&T.phase==='hang'){stopHold();return}
   if(T.phase==='idle'){beep(440,.01);setPhase('ready');holdWake();$('#tMain').textContent='Pause';raf=requestAnimationFrame(loop);return}
+  if(T.phase==='work'&&T.mode==='max'){stopHold();return}
+  if(T.phase==='work'&&T.mode==='self'){workDone();return}
   if(T.paused){T.paused=false;T.end=performance.now()+T.left*1000;$('#tMain').textContent='Pause'}
   else{T.paused=true;$('#tMain').textContent='Resume'}
 });
 $('#tSkip').addEventListener('click',()=>{if(!T||T.phase==='idle'||T.phase==='done')return;if(T.paused){T.paused=false;$('#tMain').textContent='Pause'}advance()});
-$('#tEnd').addEventListener('click',()=>{if(!T)return;if(T.phase==='done'){closeTimer();return}finish(false)});
+$('#tEnd').addEventListener('click',()=>{if(!T)return;if(T.phase==='done'){closeTimer();return}if(T.phase==='work'&&T.mode==='self'&&T.it.openEnded)T.completed=T.set;finish(false)});
 
 /* ---------- pick your name and boot ---------- */
 function showPicker(){
