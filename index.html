@@ -135,6 +135,15 @@ nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--gre
 .load.lvl{flex-wrap:wrap}
 .hint{margin:6px 0 0;font-size:14px;color:var(--blue);font-weight:500}
 .self{margin:8px 0 0;font-size:14px;color:var(--muted);font-style:italic}
+.av{border-radius:50%;object-fit:cover;display:inline-grid;place-items:center;color:#fff;font-weight:700;font-family:var(--display);flex:none}
+.nm{display:flex;align-items:center;gap:10px}
+.who button{display:flex;align-items:center;gap:12px}
+.mebtn{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 3px!important}
+.msgrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.msgrow>span:first-child{flex:1;font-weight:600;min-width:90px}
+.msgrow.rec>span:nth-child(2){flex:1}
+.recdot{flex:none!important;min-width:0!important;width:12px;height:12px;border-radius:50%;background:#D93025;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.3}}
 /* timer */
 #timer{position:fixed;inset:0;background:var(--timer-bg);color:var(--timer-ink);z-index:20;display:none;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(18px + env(safe-area-inset-top,0px)) 20px calc(26px + env(safe-area-inset-bottom,0px))}
 #timer.open{display:flex}
@@ -188,7 +197,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--gre
 const SUPABASE_URL = 'https://mjogiumhumnmgkyblqgc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qb2dpdW1odW1ubWdreWJscWdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2MjAzNTEsImV4cCI6MjEwNjE5NjM1MX0.vaBL3SqEK7kcqUcymNHex2DCsp-QFA0yaqdULvHp3m4';
 // Starting crew. Anyone else can add themselves from the name screen.
-const CREW = ['Reuben', 'Asher', 'Roan', 'Noah'];
+const CREW = ['Reuben', 'Asher', 'Roan', 'Noah', 'Charlie', 'Cody', 'Grant', 'Isaac', 'Jack', 'Lincoln', 'Sam', 'Sol'];
 function people(){const extra=(S.people||[]).filter(n=>!CREW.some(c=>c.toLowerCase()===n.toLowerCase()));return [...CREW,...extra.sort((a,b)=>a.localeCompare(b))]}
 
 /* ---------- plan ---------- */
@@ -733,7 +742,7 @@ async function loadAll(){
   if(L.error||St.error){const e=L.error||St.error;$('#app').innerHTML=`<div class="banner warn" style="margin-top:24px">Couldn't load data: ${esc(e.message)}. Check the two SETUP values in index.html and that you ran supabase-setup.sql.</div>`;return}
   S.logs=L.data.map(mapLog);
   S.members={};S.block=null;
-  S.people=St.data.filter(r=>r.key.startsWith('person:')).map(r=>r.value&&r.value.name).filter(Boolean);
+  S.people=St.data.filter(r=>r.key.startsWith('person:')).map(r=>r.value&&r.value.name).filter(Boolean);readAvatars(St.data);
   St.data.forEach(r=>{if(r.key==='block')S.block=r.value;else if(r.key.startsWith('cleared:'))S.members[r.key.slice(8)]={cleared:!!(r.value&&r.value.cleared)}});
   if(!S.dirty)S.session=freshSession(S.date);
   render();
@@ -747,7 +756,7 @@ function header(){
   let chip='';
   if(wk&&wk<=8)chip=`<span class="chip ${wk===4?'deload':wk===8?'test':''}">Week ${wk} of 8${wk===4?', deload':wk===8?', test':''}</span>`;
   else if(wk>8)chip='<span class="chip">Block finished</span>';
-  return `<div class="brand"><span><b>RNR Sends</b> crew training</span><span style="display:flex;gap:6px;align-items:center">${chip}${S.uid?`<button id="switchMe" aria-label="Switch person">${esc(S.uid)}</button>`:''}</span></div>`;
+  return `<div class="brand"><span><b>RNR Sends</b> crew training</span><span style="display:flex;gap:6px;align-items:center">${chip}${S.uid?`<button id="switchMe" class="mebtn" aria-label="Your profile">${av(S.uid,22)}<span>${esc(S.uid)}</span></button>`:''}</span></div>`;
 }
 function renderToday(){
   if(!S.session||S.session.date!==S.date)S.session=freshSession(S.date);
@@ -815,7 +824,7 @@ function renderCrew(){
   let h=header()+`<section class="hero"><div class="day">Ranking</div><p class="focus">Streaks count days with every item ticked. Sundays are rest and never break a streak.</p></section><div class="list">`;
   rows.forEach((r,i)=>{
     const st=rest?'<span class="tag rest">Rest day</span>':isFull(r.l)?'<span class="tag ok">Done today</span>':r.l&&r.l.completed?`<span class="tag part">${r.l.completed} of ${r.l.total} today</span>`:'<span class="tag no">Not yet today</span>';
-    h+=`<div class="rank${r.name===S.uid?' me':''}"><div class="pos">${i+1}</div><div class="body"><div class="name">${esc(r.name)}${r.name===S.uid?' (you)':''}</div>${st}
+    h+=`<div class="rank${r.name===S.uid?' me':''}"><div class="pos">${i+1}</div><div class="body"><div class="nm">${av(r.name,36)}<div><div class="name">${esc(r.name)}${r.name===S.uid?' (you)':''}</div>${st}</div></div>
       <div class="wts"><span>Max hang <b>${r.hang==null?'–':'+'+r.hang+' lb'}</b></span><span>3-finger drag <b>${r.drag==null?'–':'+'+r.drag+' lb'}</b></span><span>Pull-up <b>${r.pull==null?'–':'+'+r.pull+' lb'}</b></span></div></div>
       <div class="score">${r.st}<small>day streak</small></div></div>`});
   h+=`</div><p class="muted" style="margin-top:14px">Weights are the latest added weight each person logged. Updates live when someone logs.</p>`;
@@ -952,7 +961,7 @@ function renderHistory(){
 }
 function render(){
   const app=$('#app');
-  app.innerHTML=S.tab==='today'?renderToday():S.tab==='crew'?renderCrew():S.tab==='guide'?renderGuide():renderHistory();
+  app.innerHTML=S.tab==='today'?renderToday():S.tab==='crew'?renderCrew():S.tab==='guide'?renderGuide():S.tab==='profile'?renderProfile():renderHistory();
   document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===S.tab?'page':'false'));
 }
 
@@ -966,7 +975,17 @@ $('#app').addEventListener('click',async e=>{
   const tm=e.target.closest('[data-timer]');
   if(tm){const it=planFor(S.date).items.find(i=>i.id===tm.dataset.timer);openTimer(it);return}
   if(e.target.id==='newBlock'){const {error}=await sb.from('settings').upsert({key:'block',value:{start:weekStart(today()),by:S.uid}});if(error)return handleWriteErr(error);toast('New block started');loadAll();return}
-  if(e.target.id==='switchMe'){S.histWho=null;if(S.dirty){clearTimeout(saveTimer);await saveLog()}showPicker();return}
+  if(e.target.closest('#switchMe')){S.tab='profile';render();window.scrollTo(0,0);return}
+  if(e.target.id==='switchPerson'){S.histWho=null;if(S.dirty){clearTimeout(saveTimer);await saveLog()}showPicker();return}
+  if(e.target.id==='avDel'){saveAvatar(null);return}
+  if(e.target.id==='recStart'){startRecording();return}
+  if(e.target.id==='recStop'){if(rec&&rec.mr&&rec.mr.state==='recording')rec.mr.stop();return}
+  if(e.target.id==='recPlay'){if(rec&&rec.url)new Audio(rec.url).play().catch(()=>toast('This phone can’t play that preview, but it may still save fine.'));return}
+  if(e.target.id==='recSave'){saveRecording();return}
+  if(e.target.id==='recRedo'){if(rec&&rec.url)URL.revokeObjectURL(rec.url);rec=null;startRecording();return}
+  if(e.target.id==='recCancel'){if(rec&&rec.url)URL.revokeObjectURL(rec.url);rec=null;render();return}
+  if(e.target.dataset.play){const m=S.msgs.find(x=>String(x.id)===e.target.dataset.play);if(m)new Audio(m.audio).play().catch(()=>toast('This phone can’t play that clip.'));return}
+  if(e.target.dataset.delmsg){if(!confirm('Delete this message?'))return;const {error}=await sb.from('messages').delete().eq('id',e.target.dataset.delmsg).eq('name',S.uid);if(error){toast('Couldn’t delete it.');return}toast('Message deleted');loadMsgs();return}
   if(e.target.id==='saveMob'){
     const d=$('#mDate').value||today(),body={uid:S.uid,date:d,createdAt:Date.now()};let any=false;
     for(const [k,el] of [['step','#mStep'],['frog','#mFrog'],['wall','#mWall']]){const v=parseFloat($(el).value);if(!isNaN(v)){body[k]=v;any=true}}
@@ -985,12 +1004,83 @@ $('#app').addEventListener('input',e=>{
   if(e.target.id==='painR'){const p=S.pain[S.date]={...(S.pain[S.date]||{}),level:+e.target.value};$('#painV').textContent=p.level+' / 10';queuePain()}
 });
 $('#app').addEventListener('change',async e=>{
+  if(e.target.id==='avFile'&&e.target.files&&e.target.files[0]){try{const img=await resizeImage(e.target.files[0]);await saveAvatar(img)}catch(err){toast(err.message||'Couldn’t read that photo.')}return}
+  if(e.target.id==='msgsOn'){try{localStorage.setItem('rnr-msgs-off',e.target.checked?'0':'1')}catch(err){}toast(e.target.checked?'Crew messages on':'Crew messages off');return}
   if(e.target.id==='histWho'){S.histWho=e.target.value;render();return}
   if(e.target.dataset.level||e.target.dataset.grade){const k=(e.target.dataset.level?'lvl:':'g:')+(e.target.dataset.level||e.target.dataset.grade);if(e.target.value==='')delete S.session.loads[k];else S.session.loads[k]=+e.target.value;queueSave();render();return}
   if(e.target.id==='knuckle'){S.pain[S.date]={...(S.pain[S.date]||{}),knuckle:e.target.checked};queuePain();render()}
   if(e.target.id==='xray'){const c=e.target.checked;const {error}=await sb.from('settings').upsert({key:'cleared:'+S.uid,value:{cleared:c}});if(error)return handleWriteErr(error);S.members[S.uid]={cleared:c};toast(c?'Heavier protocol on':'Pre-clearance protocol on');render()}
 });
 
+/* ---------- profile pictures and encouragement messages ---------- */
+const AVCOL=['#2A6AD0','#C2367F','#12905A','#C9660F','#7A4FD1','#0E8C9B','#B8452E','#5C7A1E'];
+function avColor(n){let h=0;for(const ch of String(n).toLowerCase())h=(h*31+ch.charCodeAt(0))>>>0;return AVCOL[h%AVCOL.length]}
+function av(n,size=36){const img=S.avatars&&S.avatars[String(n).toLowerCase()];
+  return img?`<img class="av" src="${esc(img)}" alt="" style="width:${size}px;height:${size}px">`
+    :`<span class="av" style="width:${size}px;height:${size}px;background:${avColor(n)};font-size:${Math.round(size*.5)}px">${esc((String(n)[0]||'?').toUpperCase())}</span>`}
+function readAvatars(rows){S.avatars={};rows.filter(r=>r.key.startsWith('avatar:')&&r.value&&r.value.img).forEach(r=>S.avatars[r.key.slice(7)]=r.value.img)}
+function resizeImage(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=()=>rej(new Error('That file isn\'t an image this browser can read.'));im.onload=()=>{
+  const N=160,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');const m=Math.min(im.width,im.height);
+  g.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,N,N);res(c.toDataURL('image/jpeg',.8))};im.src=fr.result};fr.readAsDataURL(file)})}
+async function saveAvatar(img){
+  const {error}=await sb.from('settings').upsert({key:'avatar:'+S.uid.toLowerCase(),value:{name:S.uid,img}});
+  if(error){toast('Couldn’t save the photo.');return}
+  S.avatars[S.uid.toLowerCase()]=img;toast(img?'Photo saved':'Photo removed');render()}
+
+/* messages */
+S.msgs=[];S.avatars=S.avatars||{};const BUF=new Map();let lastMsg=null;
+const msgsOff=()=>{try{return localStorage.getItem('rnr-msgs-off')==='1'}catch(e){return false}};
+async function loadMsgs(){if(!sb)return;const {data,error}=await sb.from('messages').select('id,name,audio,mime,created_at').order('created_at',{ascending:true});
+  if(!error&&data){S.msgs=data;for(const k of [...BUF.keys()])if(!data.some(m=>m.id===k))BUF.delete(k);if(S.tab==='profile')render();decodeMsgs()}}
+async function decodeMsgs(){if(!actx)return;for(const m of S.msgs){if(BUF.has(m.id))continue;BUF.set(m.id,null);
+  try{const ab=await (await fetch(m.audio)).arrayBuffer();const buf=await new Promise((ok,no)=>{const p=actx.decodeAudioData(ab,ok,no);if(p&&p.then)p.then(ok,no)});BUF.set(m.id,buf)}catch(e){BUF.set(m.id,false)}}}
+function playMsg(){
+  if(msgsOff()||!actx)return;const ready=S.msgs.filter(m=>BUF.get(m.id));if(!ready.length)return;
+  let pool=ready.length>1?ready.filter(m=>m.id!==lastMsg):ready;const m=pool[Math.floor(Math.random()*pool.length)];lastMsg=m.id;
+  try{const src=actx.createBufferSource();src.buffer=BUF.get(m.id);const g=actx.createGain();g.gain.value=1;src.connect(g);g.connect(actx.destination);src.start();
+    if(T){T.msgFrom=m.name;T.msgUntil=performance.now()+3200}}catch(e){}
+}
+let rec=null;
+async function startRecording(){
+  if(!navigator.mediaDevices||!window.MediaRecorder){toast('This browser can’t record audio.');return}
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){toast('Microphone access was blocked. Allow it in your browser settings.');return}
+  const types=['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+  const mime=types.find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+  let mr;try{mr=new MediaRecorder(stream,mime?{mimeType:mime,audioBitsPerSecond:32000}:{})}catch(e){mr=new MediaRecorder(stream)}
+  const chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  rec={state:'rec',mr,start:Date.now()};
+  mr.onstop=()=>{clearInterval(rec.iv);clearTimeout(rec.to);stream.getTracks().forEach(t=>t.stop());
+    const blob=new Blob(chunks,{type:(mr.mimeType||mime||'audio/webm').split(';')[0]});rec={state:'preview',blob,url:URL.createObjectURL(blob)};render()};
+  mr.start();render();
+  rec.to=setTimeout(()=>{if(mr.state==='recording')mr.stop()},3000);
+  rec.iv=setInterval(()=>{const el=document.getElementById('recLeft');if(el)el.textContent=(Math.max(0,3000-(Date.now()-rec.start))/1000).toFixed(1)},100);
+}
+async function saveRecording(){
+  if(!rec||!rec.blob)return;
+  if(S.msgs.filter(m=>m.name.toLowerCase()===S.uid.toLowerCase()).length>=2){toast('You already have 2 messages. Delete one first.');return}
+  if(rec.blob.size>150000){toast('That recording is too large. Try again.');return}
+  const audio=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(rec.blob)});
+  const {error}=await sb.from('messages').insert({name:S.uid,audio,mime:rec.blob.type});
+  if(error){toast(/limit|2 messages/i.test(error.message)?'You already have 2 messages.':'Couldn’t save the message.');return}
+  URL.revokeObjectURL(rec.url);rec=null;toast('Message saved');await loadMsgs();render()}
+function renderProfile(){
+  const me=S.uid,mine=S.msgs.filter(m=>m.name.toLowerCase()===me.toLowerCase());const others=S.msgs.length-mine.length;
+  let h=header()+`<section class="hero"><div class="day">You</div><p class="focus">${esc(me)}</p></section>`;
+  h+=`<h2>Profile picture</h2><div class="card"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">${av(me,88)}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn primary" style="cursor:pointer">Choose photo<input type="file" id="avFile" accept="image/*" hidden></label>
+    ${S.avatars[me.toLowerCase()]?'<button class="btn" id="avDel">Remove</button>':''}</div></div>
+    <p class="muted" style="margin:12px 0 0">On a phone you can take a new photo or pick one. It's cropped to a square and shown in the ranking.</p></div>`;
+  h+=`<h2>Encouragement messages</h2><div class="card"><p style="margin:0 0 12px;font-size:15px">Record up to 2 messages, 3 seconds each. A random one from the whole crew plays halfway through every hang, hold or stretch of 5 seconds or more, and 5 seconds into max holds and self-paced sets.</p>`;
+  mine.forEach((m,i)=>{h+=`<div class="msgrow"><span>Message ${i+1}</span><button class="btn" data-play="${m.id}">Play</button><button class="btn" data-delmsg="${m.id}">Delete</button></div>`});
+  if(rec&&rec.state==='rec')h+=`<div class="msgrow rec"><span class="recdot"></span><span>Recording… <b id="recLeft">3.0</b>s</span><button class="btn" id="recStop">Stop</button></div>`;
+  else if(rec&&rec.state==='preview')h+=`<div class="msgrow"><span>New message</span><button class="btn" id="recPlay">Play</button><button class="btn primary" id="recSave">Save</button><button class="btn" id="recRedo">Re-record</button><button class="btn" id="recCancel">Cancel</button></div>`;
+  else if(mine.length<2)h+=`<button class="btn primary" id="recStart">${mine.length?'Record a second message':'Record a message'}</button>`;
+  else h+=`<p class="muted" style="margin:6px 0 0">You have 2 messages. Delete one to record a new one.</p>`;
+  h+=`<p class="muted" style="margin:12px 0 0">${others} message${others===1?'':'s'} from the rest of the crew in rotation.</p>
+    <label class="check" style="margin-top:12px"><input type="checkbox" id="msgsOn" ${msgsOff()?'':'checked'}><span>Play crew messages during my workouts on this phone</span></label></div>`;
+  h+=`<h2>Not you?</h2><button class="btn" id="switchPerson">Switch person</button>`;
+  return h;
+}
 /* ---------- timer ---------- */
 let T=null,raf=0,actx=null,wake=null;
 const CIRC=565.5;
@@ -1012,6 +1102,7 @@ function setPhase(ph){
   T.phase=ph;T.lastSec=null;const st=step();
   if(ph==='ready'){T.dur=5;T.mode='count'}
   if(ph==='work'){
+    T.msgDone=false;
     if(st.on==='max'){T.mode='max';T.start=performance.now();T.hit=false;T.dur=0;$('#tMain').textContent='Stop';$('#tSkip').style.visibility='hidden'}
     else if(st.on==null){T.mode='self';T.start=performance.now();T.dur=0;$('#tMain').textContent='Done';$('#tSkip').style.visibility='hidden'}
     else{T.mode='count';T.dur=st.on;$('#tMain').textContent='Pause';$('#tSkip').style.visibility=''}
@@ -1045,6 +1136,10 @@ async function holdWake(){try{wake=await navigator.wakeLock.request('screen')}ca
 function releaseWake(){try{wake&&wake.release()}catch(e){}wake=null}
 function loop(){
   if(!T)return;
+  if(T.phase==='work'&&!T.paused&&!T.msgDone){const st=step();let el=null,at=null;
+    if(T.mode==='count'&&typeof st.on==='number'&&st.on>=5){el=st.on-T.left;at=st.on/2}
+    else if(T.mode==='max'||T.mode==='self'){el=(performance.now()-T.start)/1000;at=5}
+    if(at!=null&&el>=at){T.msgDone=true;playMsg()}}
   if(T.phase==='work'&&T.mode==='max'){const el=(performance.now()-T.start)/1000;if(!T.hit&&el>=T.cfg.target){T.hit=true;beep(1560,.2);buzz(120)}if(el>=300)stopHold()}
   else if(!T.paused&&T.mode==='count'&&(T.phase==='ready'||T.phase==='work'||T.phase==='rest')){
     T.left=Math.max(0,(T.end-performance.now())/1000);
@@ -1070,6 +1165,7 @@ function paint(){
   if(T.cfg.max)cue=T.results.length?'Holds so far: '+T.results.map(x=>x+'s').join(', '):'';
   else if(T.phase==='work'||T.phase==='ready'||T.phase==='idle')cue=st.cue||'';
   else if(T.phase==='rest'&&T.steps[T.set])cue='Next: '+T.steps[T.set].cue;
+  if(T.msgUntil&&performance.now()<T.msgUntil&&T.phase==='work')cue='From '+T.msgFrom;
   $('#tCue').textContent=cue;
   const frac=T.mode==='max'&&T.phase==='work'?Math.min(1,el/T.cfg.target):T.mode==='self'&&T.phase==='work'?0:T.phase==='done'?1:T.phase==='idle'?0:(T.dur?1-(T.left/T.dur):1);
   $('#tProg').setAttribute('stroke-dashoffset',String(CIRC*(1-frac)));
@@ -1077,7 +1173,7 @@ function paint(){
 $('#tMain').addEventListener('click',()=>{
   if(!T)return;
   if(T.phase==='done'){closeTimer();return}
-  if(T.phase==='idle'){beep(440,.01);setPhase('ready');holdWake();$('#tMain').textContent='Pause';raf=requestAnimationFrame(loop);return}
+  if(T.phase==='idle'){beep(440,.01);decodeMsgs();setPhase('ready');holdWake();$('#tMain').textContent='Pause';raf=requestAnimationFrame(loop);return}
   if(T.phase==='work'&&T.mode==='max'){stopHold();return}
   if(T.phase==='work'&&T.mode==='self'){workDone();return}
   if(T.paused){T.paused=false;T.end=performance.now()+T.left*1000;$('#tMain').textContent='Pause'}
@@ -1087,13 +1183,13 @@ $('#tSkip').addEventListener('click',()=>{if(!T||T.phase==='idle'||T.phase==='do
 $('#tEnd').addEventListener('click',()=>{if(!T)return;if(T.phase==='done'){closeTimer();return}if(T.phase==='work'&&T.mode==='self'&&T.it.openEnded)T.completed=T.set;finish(false)});
 
 /* ---------- pick your name and boot ---------- */
-async function fetchPeople(){try{const {data}=await sb.from('settings').select('key,value').like('key','person:%');S.people=(data||[]).map(r=>r.value&&r.value.name).filter(Boolean)}catch(e){}}
+async function fetchPeople(){try{const {data}=await sb.from('settings').select('key,value');const rows=data||[];S.people=rows.filter(r=>r.key.startsWith('person:')).map(r=>r.value&&r.value.name).filter(Boolean);readAvatars(rows)}catch(e){}}
 async function showPicker(){
   document.querySelector('nav.tabs').style.display='none';
   $('#app').innerHTML='<p class="muted" style="margin-top:24px">Loading the crew…</p>';
   await fetchPeople();
   $('#app').innerHTML=`<div class="brand"><span><b>RNR Sends</b> crew training</span></div><section class="hero"><div class="day">Who are you?</div><p class="focus">This phone will remember your pick. You can switch any time from the name button at the top.</p></section>
-   <div class="who">${people().map(n=>`<button data-me="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+   <div class="who">${people().map(n=>`<button data-me="${esc(n)}">${av(n,40)}<span>${esc(n)}</span></button>`).join('')}</div>
    <h2>New here?</h2><div class="card"><div class="form"><label class="full">Your name, as the crew will see it<input id="newName" maxlength="40" autocomplete="given-name"></label>
    <div class="full"><button class="btn primary" id="addMe">Add me</button></div></div><p class="muted" id="addMsg" style="margin:10px 0 0"></p></div>`;
   document.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>pick(b.dataset.me));
@@ -1115,7 +1211,9 @@ async function enter(){
   S.tab='today';S.dirty=false;loadPain();S.session=freshSession(S.date);render();
   await loadAll();
   if(!started){started=true;
-    sb.channel('crew').on('postgres_changes',{event:'*',schema:'public',table:'logs'},scheduleReload)
+    loadMsgs();
+    sb.channel('crew').on('postgres_changes',{event:'*',schema:'public',table:'messages'},()=>loadMsgs())
+      .on('postgres_changes',{event:'*',schema:'public',table:'logs'},scheduleReload)
       .on('postgres_changes',{event:'*',schema:'public',table:'settings'},scheduleReload).subscribe();
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleReload()});
     setInterval(()=>{if(!document.hidden)scheduleReload()},60000);
