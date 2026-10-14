@@ -1070,7 +1070,7 @@ function renderProfile(){
     <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn primary" style="cursor:pointer">Choose photo<input type="file" id="avFile" accept="image/*" hidden></label>
     ${S.avatars[me.toLowerCase()]?'<button class="btn" id="avDel">Remove</button>':''}</div></div>
     <p class="muted" style="margin:12px 0 0">On a phone you can take a new photo or pick one. It's cropped to a square and shown in the ranking.</p></div>`;
-  h+=`<h2>Encouragement messages</h2><div class="card"><p style="margin:0 0 12px;font-size:15px">Record up to 2 messages, 3 seconds each. A random one from the whole crew plays halfway through every hang, hold or stretch of 5 seconds or more, and 5 seconds into max holds and self-paced sets.</p>`;
+  h+=`<h2>Encouragement messages</h2><div class="card"><p style="margin:0 0 12px;font-size:15px">Record up to 2 messages, 3 seconds each. A random one from the whole crew plays in the middle of every hang, hold or stretch of 5 seconds or more, and 5 seconds into max holds and self-paced sets.</p>`;
   mine.forEach((m,i)=>{h+=`<div class="msgrow"><span>Message ${i+1}</span><button class="btn" data-play="${m.id}">Play</button><button class="btn" data-delmsg="${m.id}">Delete</button></div>`});
   if(rec&&rec.state==='rec')h+=`<div class="msgrow rec"><span class="recdot"></span><span>Recording… <b id="recLeft">3.0</b>s</span><button class="btn" id="recStop">Stop</button></div>`;
   else if(rec&&rec.state==='preview')h+=`<div class="msgrow"><span>New message</span><button class="btn" id="recPlay">Play</button><button class="btn primary" id="recSave">Save</button><button class="btn" id="recRedo">Re-record</button><button class="btn" id="recCancel">Cancel</button></div>`;
@@ -1137,7 +1137,7 @@ function releaseWake(){try{wake&&wake.release()}catch(e){}wake=null}
 function loop(){
   if(!T)return;
   if(T.phase==='work'&&!T.paused&&!T.msgDone){const st=step();let el=null,at=null;
-    if(T.mode==='count'&&typeof st.on==='number'&&st.on>=5){el=st.on-T.left;at=st.on/2}
+    if(T.mode==="count"&&typeof st.on==="number"&&st.on>=5){el=st.on-T.left;at=Math.max(0,(st.on-3)/2)}
     else if(T.mode==='max'||T.mode==='self'){el=(performance.now()-T.start)/1000;at=5}
     if(at!=null&&el>=at){T.msgDone=true;playMsg()}}
   if(T.phase==='work'&&T.mode==='max'){const el=(performance.now()-T.start)/1000;if(!T.hit&&el>=T.cfg.target){T.hit=true;beep(1560,.2);buzz(120)}if(el>=300)stopHold()}
